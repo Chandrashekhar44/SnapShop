@@ -1,0 +1,64 @@
+
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  username   String   @unique
+  email      String   @unique
+  password   String   
+  address    String
+  category   String
+  sellingProducts sellproducts[]
+  createdAt DateTime  @default(now())
+
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  price     Float
+  createdAt DateTime @default(now())
+  requests  ProductRequest[]
+}
+
+model ProductRequest {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  buyerName  String   // optional if you want to track buyer directly
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+
+  product    Product  @relation(fields: [productId], references: [id])
+}
+
+model Seller {
+  id           Int      @id @default(autoincrement())
+  shopName     String
+  shopAddress  String
+  shopCategory String
+  createdAt    DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model Buyer {
+  id           Int      @id @default(autoincrement())
+  buyerName    String
+  buyerAddress String
+  buyerCategory String
+  createdAt    DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}
+
