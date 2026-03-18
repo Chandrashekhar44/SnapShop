@@ -5,9 +5,16 @@ import ApiResponse from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { hashPasswordIfNeeded, generateAccessToken, generateRefreshToken } from "../utils/userfunction.js";
+import { CookieOptions } from "express";
 
 
 
+export const cookieOptions: CookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "none",
+    path: "/"
+};
 
 const registerUser = asynchandler(async (req, res) => {
 
@@ -122,17 +129,13 @@ const loginUser = asynchandler(async (req, res) => {
     const refreshToken = await generateRefreshToken(user);
 
     return res.status(200)
-        .cookie("accessToken", {
-            httpOnly: true,
-            secure: true,
-        })
-        .cookie("refreshToken", {
-            httpOnly: true,
-            secure: true,
-        })
+        .cookie("accessToken", accessToken, cookieOptions)
+        .cookie("refreshToken", refreshToken, cookieOptions)
         .json(
-            new ApiResponse(200, user, "User logged in successfully"))
+            new ApiResponse(200, user, "User logged in successfully")
+        );
 })
+
 
 const logoutUser = asynchandler(async (req, res) => {
 

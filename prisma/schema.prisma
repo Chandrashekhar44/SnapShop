@@ -1,5 +1,10 @@
 
 
+
+generator erd {
+  provider = "prisma-erd-generator"
+}
+
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -11,54 +16,75 @@ datasource db {
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  username   String   @unique
-  email      String   @unique
-  password   String   
-  address    String
-  category   String
-  sellingProducts sellproducts[]
-  createdAt DateTime  @default(now())
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
 
+  seller Seller?
+  buyer  Buyer?
 }
+
 
 model Product {
   id        Int      @id @default(autoincrement())
   name      String
   price     Float
   createdAt DateTime @default(now())
-  requests  ProductRequest[]
+
+  sellerId Int
+  seller   Seller @relation(fields: [sellerId], references: [id])
+
+  orders Order[]
 }
 
-model ProductRequest {
-  id         Int      @id @default(autoincrement())
-  productId  Int
-  buyerName  String   // optional if you want to track buyer directly
-  quantity   Int      @default(1)
-  createdAt  DateTime @default(now())
 
-  product    Product  @relation(fields: [productId], references: [id])
+model Order {
+  id        Int      @id @default(autoincrement())
+  quantity  Int      @default(1)
+  status    String   // pending, accepted, delivered
+  createdAt DateTime @default(now())
+
+  buyerId   Int
+  buyer     Buyer @relation(fields: [buyerId], references: [id])
+
+  sellerId  Int
+  seller    Seller @relation(fields: [sellerId], references: [id])
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
 }
+
 
 model Seller {
   id           Int      @id @default(autoincrement())
   shopName     String
   shopAddress  String
   shopCategory String
+  latitude     Float
+  longitude    Float
   createdAt    DateTime @default(now())
 
-  userId Int
+  userId Int  @unique
   user   User @relation(fields: [userId], references: [id])
+
+  products Product[]
+  orders   Order[]
 }
+
 
 model Buyer {
-  id           Int      @id @default(autoincrement())
-  buyerName    String
-  buyerAddress String
-  buyerCategory String
-  createdAt    DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
 
-  userId Int
+  userId Int  @unique
   user   User @relation(fields: [userId], references: [id])
+
+  orders Order[]
 }
+
+
 
