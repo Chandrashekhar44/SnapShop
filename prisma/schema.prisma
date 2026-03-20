@@ -1,18 +1,13 @@
-
-
-
 generator erd {
   provider = "prisma-erd-generator"
 }
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -22,40 +17,35 @@ model User {
   password  String
   createdAt DateTime @default(now())
 
-  seller Seller?
-  buyer  Buyer?
+  category String
+  seller   Seller?
+  buyer    Buyer?
 }
-
 
 model Product {
   id        Int      @id @default(autoincrement())
   name      String
   price     Float
+  category  String
   createdAt DateTime @default(now())
 
   sellerId Int
   seller   Seller @relation(fields: [sellerId], references: [id])
-
-  orders Order[]
 }
-
 
 model Order {
   id        Int      @id @default(autoincrement())
   quantity  Int      @default(1)
-  status    String   // pending, accepted, delivered
+  name      String
+  status    String // pending, accepted, delivered
   createdAt DateTime @default(now())
 
-  buyerId   Int
-  buyer     Buyer @relation(fields: [buyerId], references: [id])
+  buyerId Int
+  buyer   Buyer @relation(fields: [buyerId], references: [id])
 
-  sellerId  Int
-  seller    Seller @relation(fields: [sellerId], references: [id])
-
-  productId Int
-  product   Product @relation(fields: [productId], references: [id])
+  sellerId Int
+  seller   Seller @relation(fields: [sellerId], references: [id])
 }
-
 
 model Seller {
   id           Int      @id @default(autoincrement())
@@ -73,7 +63,6 @@ model Seller {
   orders   Order[]
 }
 
-
 model Buyer {
   id        Int      @id @default(autoincrement())
   latitude  Float
@@ -85,6 +74,3 @@ model Buyer {
 
   orders Order[]
 }
-
-
-
