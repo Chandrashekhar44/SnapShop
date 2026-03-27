@@ -1,4 +1,3 @@
-// index.ts
 import http from "http";
 import app from "./app.js";
 import { initSocket } from "./socket/socket.js";

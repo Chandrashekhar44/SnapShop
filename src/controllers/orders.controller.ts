@@ -58,23 +58,23 @@ const placeOrder = asynchandler(async (req, res) => {
 
 
 const confirmOrder = asynchandler(async(req,res)=>{
-    const {orderId} = req.params;
+    const {id} = req.params;
     const sellerId = req.user?.id;
     const {acceptance} = req.body;
     
-    if(!orderId){
+    if(!id){
         throw new ApiError(400,"Technical issue")
     }
      const existingOrder = await prisma.order.findUnique({
-    where: { id: orderId }
+    where: { id: Number(id) }
       });
-    if(existingOrder.sellerId){
+    if(existingOrder?.sellerId){
         throw new ApiError(400,"Order already accepted")
     }
     if(acceptance == "Accepted"){
     const userOrder = await prisma.order.update({
         where :{
-            id : orderId
+            id : Number(id)
         },
         data :{
             sellerId ,

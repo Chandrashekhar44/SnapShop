@@ -18,9 +18,9 @@ export const cookieOptions: CookieOptions = {
 
 const registerUser = asynchandler(async (req, res) => {
 
-    const { username, email, password, latitude,longitude, category } = req.body;
+    const { username, email,address, password, latitude,longitude, category } = req.body;
 
-    if (!username || !email || !password || !latitude || !longitude || !category) {
+    if (!username || !email || !address || !password || !latitude || !longitude || !category) {
         throw new ApiError(400, "All fields are required");
     }
 
@@ -43,6 +43,9 @@ const registerUser = asynchandler(async (req, res) => {
         data: {
             username,
             email,
+            address,
+            latitude,
+            longitude,
             password: hashedPassword,
             category
         }
@@ -55,10 +58,12 @@ const registerUser = asynchandler(async (req, res) => {
     if (user.category === "seller") {
         const seller = await prisma.seller.create({
             data: {
-                userId: user.id,
                 shopName: user.username,
                 shopAddress: user.address,
-                shopCategory: user.category
+                shopCategory: user.category,
+                latitude: user.latitude,
+                longitude:user.longitude,
+                userId : user.id
             }
         })
 
@@ -71,9 +76,8 @@ const registerUser = asynchandler(async (req, res) => {
         const buyer = await prisma.buyer.create({
             data: {
                 userId: user.id,
-                buyerName: user.latitude,
-                buyerAddress: user.address,
-                buyerCategory: user.category
+                latitude: user.latitude,
+                longitude: user.longitude,
             }
         })
 
@@ -147,11 +151,72 @@ const logoutUser = asynchandler(async (req, res) => {
 })
 
 const getCurrentUser = asynchandler(async(req,res)=>{
-   const {userId} = req.params;
-   if(!userId){
+   const {id} = req.params;
+   if(!id){
     throw new ApiError(404,"Invalid userid or user not found")
    }
 
-   const currUser = await prisma.user.findUnique()
+   const currUser = await prisma.user.findUnique({
+    where:{
+        id: Number(id)
+    }
+   })
+
+   if(!currUser){
+    throw new ApiError(404,"User not found")
+   }
+   
+
+   return res.status(200).json(new ApiResponse(200,
+    {
+        username : currUser.username,
+        email : currUser.email,
+        address:currUser.address,
+        category : currUser.category,
+        
+    },"Fetched current user successfully"))
 
 })
+
+const getCurrUserProducts = asynchandler(async (req, res) => {
+  const { sellerId } = req.params;
+
+  if (!sellerId || isNaN(Number(sellerId))) {
+    throw new ApiError(400, "Invalid sellerId");
+  }
+
+  const cacheKey = `user`
+
+  const cachedData = await Redis.Redis.prototype.get(cacheKey);
+
+  const cursor = req.query.cursor
+    ? Number(req.query.cursor)
+    : undefined;
+
+  const products = await prisma.product.findMany({
+    where: {
+      sellerId: Number(sellerId)
+    },
+    take: 10,
+    skip: cursor ? 1 : 0,
+    cursor: cursor ? { id: cursor } : undefined,
+    orderBy: {
+      id: "desc"
+    }
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        products,
+        nextCursor: products.length
+          ? products[products.length - 1].id
+          : null
+      },
+      products.length
+        ? "Fetched products successfully"
+        : "No more products"
+    )
+  );
+});
