@@ -18,9 +18,9 @@ export const cookieOptions: CookieOptions = {
 
 const registerUser = asynchandler(async (req, res) => {
 
-    const { username, email, password, address, category } = req.body;
+    const { username, email, password, latitude,longitude, category } = req.body;
 
-    if (!username || !email || !password || !address || !category) {
+    if (!username || !email || !password || !latitude || !longitude || !category) {
         throw new ApiError(400, "All fields are required");
     }
 
@@ -44,7 +44,6 @@ const registerUser = asynchandler(async (req, res) => {
             username,
             email,
             password: hashedPassword,
-            address,
             category
         }
     })
@@ -72,7 +71,7 @@ const registerUser = asynchandler(async (req, res) => {
         const buyer = await prisma.buyer.create({
             data: {
                 userId: user.id,
-                buyerName: user.username,
+                buyerName: user.latitude,
                 buyerAddress: user.address,
                 buyerCategory: user.category
             }
@@ -147,3 +146,12 @@ const logoutUser = asynchandler(async (req, res) => {
         new ApiResponse(200, {}, "User logged out successfully"))
 })
 
+const getCurrentUser = asynchandler(async(req,res)=>{
+   const {userId} = req.params;
+   if(!userId){
+    throw new ApiError(404,"Invalid userid or user not found")
+   }
+
+   const currUser = await prisma.user.findUnique()
+
+})
