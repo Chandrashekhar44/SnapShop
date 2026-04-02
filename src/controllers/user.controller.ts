@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { hashPasswordIfNeeded, generateAccessToken, generateRefreshToken } from "../utils/userfunction.js";
 import { CookieOptions } from "express";
+import client from "../redis.js";
 
 
 
@@ -152,8 +153,14 @@ const logoutUser = asynchandler(async (req, res) => {
 
 const getCurrentUser = asynchandler(async(req,res)=>{
    const {id} = req.params;
-   if(!id){
+   if(!id || isNaN(Number(id))){
     throw new ApiError(404,"Invalid userid or user not found")
+   }
+   const cachekey = `user:${id}`
+   const cachedData = await client.get(cachekey);
+   if(cachedData){
+    const parsed = JSON.parse(cachedData);
+    return res.status(200).json(new ApiResponse(200,parsed,"Fetched cache data successfully"))
    }
 
    const currUser = await prisma.user.findUnique({
@@ -163,18 +170,22 @@ const getCurrentUser = asynchandler(async(req,res)=>{
    })
 
    if(!currUser){
-    throw new ApiError(404,"User not found")
+    throw new ApiError(400,"User not found")
+   }
+   const responseData = {
+  username: currUser.username,
+  email: currUser.email,
+  address: currUser.address,
+  category: currUser.category,
+};
+
+   if(responseData){
+    await client.set(cachekey,JSON.stringify(responseData),"EX",60)
    }
    
 
    return res.status(200).json(new ApiResponse(200,
-    {
-        username : currUser.username,
-        email : currUser.email,
-        address:currUser.address,
-        category : currUser.category,
-        
-    },"Fetched current user successfully"))
+    responseData,"Fetched current user successfully"))
 
 })
 
@@ -185,13 +196,20 @@ const getCurrUserProducts = asynchandler(async (req, res) => {
     throw new ApiError(400, "Invalid sellerId");
   }
 
-  const cacheKey = `user`
-
-  const cachedData = await Redis.Redis.prototype.get(cacheKey);
-
-  const cursor = req.query.cursor
+   const cursor = req.query.cursor
     ? Number(req.query.cursor)
     : undefined;
+    const cachekey = `products:${sellerId}:${cursor || "first"}`
+
+  const cachedData = await client.get(cachekey);
+     if(cachedData){ 
+        const parsed = JSON.parse(cachedData);
+
+        return res.status(200)
+                  .json(new ApiResponse(200,parsed,"Fetched products from cache"))
+    }
+
+ 
 
   const products = await prisma.product.findMany({
     where: {
@@ -204,6 +222,17 @@ const getCurrUserProducts = asynchandler(async (req, res) => {
       id: "desc"
     }
   });
+
+ const responseData = {
+    products,
+    nextCursor: products.length
+      ? products[products.length - 1].id
+      : null,
+  };
+
+  if (products.length) {
+    await client.set(cachekey, JSON.stringify(responseData), "EX", 150);
+  }
 
   return res.status(200).json(
     new ApiResponse(

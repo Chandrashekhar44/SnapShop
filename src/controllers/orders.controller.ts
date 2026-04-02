@@ -4,6 +4,7 @@ import asynchandler from "../utils/asyncHandler.js";
 import { getIO } from "../socket/socket.js";
 import { categorySorter } from "../categorysortingAi/ai.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import client from "../redis.js";
 
 const placeOrder = asynchandler(async (req, res) => {
     const {  name, quantity } = req.body;
@@ -89,4 +90,47 @@ const confirmOrder = asynchandler(async(req,res)=>{
               .json(new ApiResponse(sellerId,"Oredr accepted"))
     
     
+})
+
+const listOrders = asynchandler(async(req,res)=>{
+   const  ownerId = req.user?.id;
+   if(!ownerId){
+    throw new ApiError(404,"owneerId not found")
+   }
+   const cursor = req.query.cursor? Number(req.query.cursor) : undefined;
+
+    const key = cursor ? `orders:${ownerId}:${cursor}` : `orders:${ownerId}:first`;
+    const cachedData = await client.get(key);
+   if(cachedData)return JSON.parse(cachedData);
+
+  const orders = await prisma.order.findMany({
+  where: {
+    sellerId : ownerId
+  }
+})
+
+if(!orders){
+    throw new ApiError(400,"Error while finding order")
+}
+
+const responseData = {
+    orders,
+    nextCursor: orders.length
+      ? orders[orders.length - 1].id
+      : null,
+  }; 
+
+  if(orders.length){
+    await client.set(key,JSON.stringify(responseData),"EX",100)
+  }
+
+return res.status(200)
+          .json(new ApiResponse(200,{
+        orders,
+        nextCursor: orders.length
+          ? orders[orders.length - 1].id
+          : null
+      },
+      orders.length? "Fetched products successfully": "No more products"))
+
 })
