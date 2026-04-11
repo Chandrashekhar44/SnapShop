@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { hashPasswordIfNeeded, generateAccessToken, generateRefreshToken } from "../utils/userfunction.js";
 import { CookieOptions } from "express";
-import client from "../redis.js";
+import {client} from "../config/redis.js";
 
 
 
