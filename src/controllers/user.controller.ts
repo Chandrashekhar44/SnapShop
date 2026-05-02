@@ -1,12 +1,12 @@
-import ApiError from "../utils/ApiError.js";
-import asynchandler from "../utils/asyncHandler.js";
+import ApiError from "../../services/shared/utils/ApiError.js";
+import asynchandler from "../../services/shared/utils/asyncHandler.js";
 import { prisma } from "../index.js";
-import ApiResponse from "../utils/ApiResponse.js";
+import ApiResponse from "../../services/shared/utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { hashPasswordIfNeeded, generateAccessToken, generateRefreshToken } from "../utils/userfunction.js";
+import { hashPasswordIfNeeded, generateAccessToken, generateRefreshToken } from "../../services/shared/utils/userfunction.js";
 import { CookieOptions } from "express";
-import {client} from "../config/redis.js";
+import {client} from "../../services/auth-service/config/redis.js";
 
 
 
